@@ -9,6 +9,8 @@ create table customer
     enabled       boolean      not null
 );
 insert into customer (id, email, emailVerified, firstName, lastName, password, enabled)
-values ('01', 'max1@nowhere.org', true, 'Max1', 'Müller1', 'as%gfg', true),
-       ('02', 'max2@nowhere.org', true, 'Max2', 'Müller2', 'as%gfg', true),
-       ('03', 'max3@nowhere.org', true, 'Max3', 'Müller3', 'as%gfg', true);
+values ('01', 'maximillian@nowhere.org', true, 'Maximillian', 'van der Schelde', 'as%gfg', true),
+       ('02', 'maximus@company.com', true, 'Brutus', 'Maximus', 'as%gfg', true),
+       ('03', 'sabrina-km@mail.org', true, 'Sabrina', 'Kühlemann', 'as%gfg', true),
+       ('04', 'hein34@gmail.com', true, 'Heinz', 'Coleman', 'as%gfg', true),
+       ('05', 'hanna@int-max.de', true, 'Hanna', 'Heitz-Steilberger', 'as%gfg', true);
