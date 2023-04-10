@@ -2,6 +2,7 @@ package dev.themartian.keycloak.provider;
 
 import lombok.NonNull;
 import lombok.SneakyThrows;
+import org.apache.commons.collections4.MapUtils;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.RowMapper;
 import org.keycloak.component.ComponentModel;
@@ -94,16 +95,7 @@ public class CustomerStorageProvider implements UserStorageProvider, UserLookupP
                     EMAIL, LAST_NAME, FIRST_NAME));
             arguments.put("search", "%" + search.trim() + "%");
         }
-        query.append(String.format(" order by %s, %s",
-                LAST_NAME, FIRST_NAME));
-        if (firstResult != null) {
-            query.append(" offset :offset");
-            arguments.put("offset", firstResult);
-        }
-        if (maxResults != null) {
-            query.append(" limit :limit");
-            arguments.put("limit", maxResults);
-        }
+        completeQuery(firstResult, maxResults, query, arguments);
         return jdbi.withHandle(handle ->
                 handle.createQuery(query)
                         .bindMap(arguments)
@@ -119,7 +111,50 @@ public class CustomerStorageProvider implements UserStorageProvider, UserLookupP
      */
     @Override
     public Stream<UserModel> searchForUserStream(RealmModel realm, Map<String, String> params, Integer firstResult, Integer maxResults) {
-        return null;
+        StringBuilder query = new StringBuilder("select * from customer");
+        final Map<String, Object> arguments = copyArguments(params);
+        if (MapUtils.isNotEmpty(arguments)) {
+            query.append(" where");
+            int count = 0;
+            for (Map.Entry entry : arguments.entrySet()) {
+                if (count > 0) {
+                    query.append(" and");
+                }
+                query.append(String.format(" %1$s = :%1$s", entry.getKey()));
+                count++;
+            }
+        }
+        completeQuery(firstResult, maxResults, query, arguments);
+        return jdbi.withHandle(handle ->
+                handle.createQuery(query)
+                        .bindMap(arguments)
+                        .map(userModelMapper(realm)).stream());
+    }
+
+    private Map<String, Object>  copyArguments(Map<String, String> params) {
+        final Map<String, Object> arguments = new HashMap<>();
+        for (Map.Entry<String, String> entry : params.entrySet()) {
+            if ((entry.getKey().equals(ENABLED) || entry.getKey().equals(EMAIL_VERIFIED))
+                && entry.getValue() != null) {
+                arguments.put(entry.getKey(),Boolean.valueOf(entry.getValue().toString()));
+            } else {
+                arguments.put(entry.getKey(),entry.getValue());
+            }
+        }
+        return arguments;
+    }
+
+    private void completeQuery(Integer firstResult, Integer maxResults, StringBuilder query, Map<String, Object> arguments) {
+        query.append(String.format(" order by %s, %s",
+                LAST_NAME, FIRST_NAME));
+        if (firstResult != null && firstResult > 0) {
+            query.append(" offset :offset");
+            arguments.put("offset", firstResult);
+        }
+        if (maxResults != null && maxResults > -1) {
+            query.append(" limit :limit");
+            arguments.put("limit", maxResults);
+        }
     }
 
     /**
@@ -131,7 +166,7 @@ public class CustomerStorageProvider implements UserStorageProvider, UserLookupP
      */
     @Override
     public Stream<UserModel> getGroupMembersStream(RealmModel realm, GroupModel group, Integer firstResult, Integer maxResults) {
-        return null;
+        return Stream.empty();
     }
 
     /**
@@ -142,6 +177,6 @@ public class CustomerStorageProvider implements UserStorageProvider, UserLookupP
      */
     @Override
     public Stream<UserModel> searchForUserByUserAttributeStream(RealmModel realm, String attrName, String attrValue) {
-        return null;
+        return searchForUserStream(realm, Map.of(attrName, attrValue), null, null);
     }
 }

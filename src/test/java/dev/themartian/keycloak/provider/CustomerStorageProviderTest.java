@@ -17,8 +17,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Stream;
 
+import static dev.themartian.keycloak.provider.CustomerModel.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 @Testcontainers
@@ -57,7 +59,7 @@ public class CustomerStorageProviderTest {
         assertThat(userModel.isEmailVerified()).isTrue();
         assertThat(userModel.getFirstName()).isEqualTo("Sabrina");
         assertThat(userModel.getLastName()).isEqualTo("Kühlemann");
-        assertThat(userModel.isEnabled()).isTrue();
+        assertThat(userModel.isEnabled()).isFalse();
 
     }
 
@@ -81,7 +83,7 @@ public class CustomerStorageProviderTest {
         assertThat(userModels.stream().map(UserModel::getId)).containsExactly(expectedIds);
     }
 
-    public static Stream<Arguments> searchValues() {
+    static Stream<Arguments> searchValues() {
         return Stream.of(
                 Arguments.arguments("", null, null, new String[]{"04", "05", "03", "02", "01"}),
                 Arguments.arguments("mAx", null, null, new String[]{"05", "02", "01"}),
@@ -94,5 +96,34 @@ public class CustomerStorageProviderTest {
                 Arguments.arguments("NixDa", null, null, new String[0])
         );
     }
+
+    @ParameterizedTest(name = "Search with params {0} (first: {1}, max: {2}) should return customer {3}")
+    @MethodSource("searchParams")
+    void searchForUserStream(Map<String, String> params, Integer firstResult, Integer maxResults, String... expectedIds) {
+
+        // given
+        CustomerStorageProvider customerStorageProvider = givenCustomerStorageProvider();
+        RealmModel realmModel = Mockito.mock(RealmModel.class);
+
+        // then
+        Stream<UserModel> userModelStream = customerStorageProvider.searchForUserStream(realmModel, params, firstResult, maxResults);
+
+        // then
+        List<UserModel> userModels = userModelStream.toList();
+        assertThat(userModels).hasSize(expectedIds.length);
+        assertThat(userModels.stream().map(UserModel::getId)).containsExactly(expectedIds);
+    }
+
+    public static Stream<Arguments> searchParams() {
+        return Stream.of(
+                Arguments.arguments(Map.of(EMAIL, "maximillian@nowhere.org"), null, null, new String[]{"01"}),
+                Arguments.arguments(Map.of(LAST_NAME, "van der Schelde"), null, null, new String[]{"01"}),
+                Arguments.arguments(Map.of(FIRST_NAME, "Maximillian"), null, null, new String[]{"01"}),
+                Arguments.arguments(Map.of(FIRST_NAME, "Maximillian", LAST_NAME, "van der Schelde"), null, null, new String[]{"01"}),
+                Arguments.arguments(Map.of(FIRST_NAME, "Maximillian", ENABLED, "true", LAST_NAME, "van der Schelde"), null, null, new String[]{"01"}),
+                Arguments.arguments(Map.of(ENABLED, "true"), null, null, new String[]{"04", "05", "02", "01"})
+        );
+    }
+
 
 }
