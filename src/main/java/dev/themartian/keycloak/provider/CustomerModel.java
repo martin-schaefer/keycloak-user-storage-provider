@@ -37,8 +37,8 @@ public class CustomerModel extends AbstractUserAdapter {
                           @NonNull String id,
                           @NonNull String email,
                           boolean emailVerified,
-                          @NonNull String firstName,
-                          @NonNull String lastName,
+                          String firstName,
+                          String lastName,
                           boolean enabled) {
         super(session, realm, storageProviderModel);
         this.id = id;

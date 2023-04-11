@@ -13,15 +13,17 @@ import org.keycloak.models.UserModel;
 import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.storage.user.UserLookupProvider;
 import org.keycloak.storage.user.UserQueryProvider;
+import org.keycloak.storage.user.UserRegistrationProvider;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 import static dev.themartian.keycloak.provider.CustomerModel.*;
 import static org.keycloak.utils.StringUtil.isNotBlank;
 
-public class CustomerStorageProvider implements UserStorageProvider, UserLookupProvider, UserQueryProvider {
+public class CustomerStorageProvider implements UserStorageProvider, UserLookupProvider, UserQueryProvider, UserRegistrationProvider {
 
     private final KeycloakSession session;
     private final ComponentModel storageProviderModel;
@@ -30,6 +32,8 @@ public class CustomerStorageProvider implements UserStorageProvider, UserLookupP
     private static final String CUSTOMER_BY_FIELD = "select * from customer where %1$s = :%1$s";
     private static final String CUSTOMER_BY_ID = String.format(CUSTOMER_BY_FIELD, ID);
     private static final String CUSTOMER_BY_EMAIL = String.format(CUSTOMER_BY_FIELD, EMAIL);
+    private static final String INSERT_CUSTOMER =
+            "insert into customer (id, email, emailVerified, enabled) values(?, ?, ?, ?)";
 
     public CustomerStorageProvider(@NonNull KeycloakSession session, @NonNull ComponentModel storageProviderModel, @NonNull ConnectionProperties connectionProperties) {
         this.session = session;
@@ -131,14 +135,14 @@ public class CustomerStorageProvider implements UserStorageProvider, UserLookupP
                         .map(userModelMapper(realm)).stream());
     }
 
-    private Map<String, Object>  copyArguments(Map<String, String> params) {
+    private Map<String, Object> copyArguments(Map<String, String> params) {
         final Map<String, Object> arguments = new HashMap<>();
         for (Map.Entry<String, String> entry : params.entrySet()) {
             if ((entry.getKey().equals(ENABLED) || entry.getKey().equals(EMAIL_VERIFIED))
                 && entry.getValue() != null) {
-                arguments.put(entry.getKey(),Boolean.valueOf(entry.getValue().toString()));
+                arguments.put(entry.getKey(), Boolean.valueOf(entry.getValue().toString()));
             } else {
-                arguments.put(entry.getKey(),entry.getValue());
+                arguments.put(entry.getKey(), entry.getValue());
             }
         }
         return arguments;
@@ -178,5 +182,32 @@ public class CustomerStorageProvider implements UserStorageProvider, UserLookupP
     @Override
     public Stream<UserModel> searchForUserByUserAttributeStream(RealmModel realm, String attrName, String attrValue) {
         return searchForUserStream(realm, Map.of(attrName, attrValue), null, null);
+    }
+
+    /**
+     * @param realm    a reference to the realm
+     * @param username a username the created user will be assigned
+     * @return
+     */
+    @Override
+    public UserModel addUser(RealmModel realm, @NonNull String username) {
+        String id = UUID.randomUUID().toString();
+        jdbi.withHandle(h -> h.execute(INSERT_CUSTOMER,
+                id, username, false, true));
+        return new CustomerModel.Builder(session, realm, storageProviderModel)
+                .id(id)
+                .email(username)
+                .enabled(true)
+                .build();
+    }
+
+    /**
+     * @param realm a reference to the realm
+     * @param user  a reference to the user that is removed
+     * @return
+     */
+    @Override
+    public boolean removeUser(RealmModel realm, UserModel user) {
+        return false;
     }
 }

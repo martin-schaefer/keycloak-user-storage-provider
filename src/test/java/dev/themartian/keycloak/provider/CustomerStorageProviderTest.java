@@ -1,10 +1,11 @@
 package dev.themartian.keycloak.provider;
 
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.jdbi.v3.core.statement.UnableToExecuteStatementException;
+import org.junit.jupiter.api.*;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
@@ -17,26 +18,30 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 
 import static dev.themartian.keycloak.provider.CustomerModel.*;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 
 @Testcontainers
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class CustomerStorageProviderTest {
 
     @Container
     private static final JdbcDatabaseContainer CONTAINER = new PostgreSQLContainer().withInitScript("init.sql");
+    private static final String NEW_MAIL = "newuser@somewhere.com";
 
-
-    private CustomerStorageProvider givenCustomerStorageProvider() {
+    private static CustomerStorageProvider customerStorageProvider;
+    @BeforeAll
+    static void initCustomerStorageProvider() {
         DefaultKeycloakSession session = new DefaultKeycloakSession(new DefaultKeycloakSessionFactory());
         ComponentModel storageProviderModel = Mockito.mock(ComponentModel.class);
         ConnectionProperties connectionProperties = new ConnectionProperties(
                 CONTAINER.getHost(), CONTAINER.getFirstMappedPort(), CONTAINER.getDatabaseName(), CONTAINER.getUsername(), CONTAINER.getPassword());
-        CustomerStorageProvider customerStorageProvider = new CustomerStorageProvider(session, storageProviderModel, connectionProperties);
-        return customerStorageProvider;
+        customerStorageProvider = new CustomerStorageProvider(session, storageProviderModel, connectionProperties);
     }
 
     /**
@@ -44,10 +49,10 @@ public class CustomerStorageProviderTest {
      */
     @Test
     @DisplayName("Get customer by id")
+    @Order(1)
     public void getUserById() {
 
         // given
-        CustomerStorageProvider customerStorageProvider = givenCustomerStorageProvider();
         RealmModel realmModel = Mockito.mock(RealmModel.class);
 
         // when
@@ -68,10 +73,10 @@ public class CustomerStorageProviderTest {
      */
     @ParameterizedTest(name = "Search with {0} (first: {1}, max: {2}) should return customer {3}")
     @MethodSource("searchValues")
+    @Order(2)
     void searchForUserStream(String search, Integer firstResult, Integer maxResults, String... expectedIds) {
 
         // given
-        CustomerStorageProvider customerStorageProvider = givenCustomerStorageProvider();
         RealmModel realmModel = Mockito.mock(RealmModel.class);
 
         // then
@@ -99,10 +104,10 @@ public class CustomerStorageProviderTest {
 
     @ParameterizedTest(name = "Search with params {0} (first: {1}, max: {2}) should return customer {3}")
     @MethodSource("searchParams")
+    @Order(3)
     void searchForUserStream(Map<String, String> params, Integer firstResult, Integer maxResults, String... expectedIds) {
 
         // given
-        CustomerStorageProvider customerStorageProvider = givenCustomerStorageProvider();
         RealmModel realmModel = Mockito.mock(RealmModel.class);
 
         // then
@@ -125,5 +130,33 @@ public class CustomerStorageProviderTest {
         );
     }
 
+    @Test
+    @Order(4)
+    @DisplayName("Add new customer")
+    void addUser() {
+        // given
+        RealmModel realmModel = Mockito.mock(RealmModel.class);
 
+        // when
+        UserModel userModel = customerStorageProvider.addUser(realmModel, NEW_MAIL);
+
+        // then
+        assertThat(userModel.getId()).isNotBlank();
+        assertThat(userModel.getUsername()).isEqualTo(NEW_MAIL);
+        assertThat(userModel.getEmail()).isEqualTo(NEW_MAIL);
+
+    }
+
+    @ParameterizedTest(name = "Add new customer with existing email {0} should fail")
+    @ValueSource(strings = { NEW_MAIL, "newuser@Somewhere.com", "NEWUSER@SOMEWHERE.COM" })
+    @Order(5)
+    void addUserWithExistingEmail(String email) {
+        // given
+        RealmModel realmModel = Mockito.mock(RealmModel.class);
+
+        // when
+        assertThrowsExactly(UnableToExecuteStatementException.class, () ->
+            customerStorageProvider.addUser(realmModel, email));
+
+    }
 }
