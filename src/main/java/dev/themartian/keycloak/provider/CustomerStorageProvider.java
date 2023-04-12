@@ -3,6 +3,7 @@ package dev.themartian.keycloak.provider;
 import lombok.NonNull;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.MapUtils;
+import org.jdbi.v3.core.Handle;
 import org.jdbi.v3.core.Jdbi;
 import org.jdbi.v3.core.mapper.RowMapper;
 import org.keycloak.component.ComponentModel;
@@ -10,6 +11,7 @@ import org.keycloak.models.GroupModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.UserModel;
+import org.keycloak.storage.StorageId;
 import org.keycloak.storage.UserStorageProvider;
 import org.keycloak.storage.user.UserLookupProvider;
 import org.keycloak.storage.user.UserQueryProvider;
@@ -28,12 +30,11 @@ public class CustomerStorageProvider implements UserStorageProvider, UserLookupP
     private final KeycloakSession session;
     private final ComponentModel storageProviderModel;
     private final Jdbi jdbi;
-
-    private static final String CUSTOMER_BY_FIELD = "select * from customer where %1$s = :%1$s";
-    private static final String CUSTOMER_BY_ID = String.format(CUSTOMER_BY_FIELD, ID);
-    private static final String CUSTOMER_BY_EMAIL = String.format(CUSTOMER_BY_FIELD, EMAIL);
+    private static final String CUSTOMER_BY_EMAIL = String.format("select * from customer where %1$s = :%1$s", EMAIL);
     private static final String INSERT_CUSTOMER =
-            "insert into customer (id, email, emailVerified, enabled) values(?, ?, ?, ?)";
+            String.format("insert into customer (%s, %s, %s, %s) values(?, ?, ?, ?)", CUSTOMER_ID, EMAIL, EMAIL_VERIFIED, ENABLED);
+    private static final String DELETE_CUSTOMER =
+            String.format("delete from customer where %s = ?", CUSTOMER_ID);
 
     public CustomerStorageProvider(@NonNull KeycloakSession session, @NonNull ComponentModel storageProviderModel, @NonNull ConnectionProperties connectionProperties) {
         this.session = session;
@@ -43,7 +44,7 @@ public class CustomerStorageProvider implements UserStorageProvider, UserLookupP
 
     private RowMapper<UserModel> userModelMapper(RealmModel realmModel) {
         return (rs, ctx) -> new CustomerModel.Builder(session, realmModel, storageProviderModel)
-                .id(rs.getString(ID))
+                .customerId(rs.getString(CUSTOMER_ID))
                 .email(rs.getString(EMAIL))
                 .emailVerified(rs.getBoolean(EMAIL_VERIFIED))
                 .firstName(rs.getString(FIRST_NAME))
@@ -68,8 +69,9 @@ public class CustomerStorageProvider implements UserStorageProvider, UserLookupP
 
     @Override
     public UserModel getUserById(RealmModel realm, String id) {
-        return jdbi.withHandle(handle -> handle.createQuery(CUSTOMER_BY_ID)
-                .bind(ID, id).map(userModelMapper(realm)).one());
+        String email = StorageId.externalId(id);
+        return jdbi.withHandle(handle -> handle.createQuery(CUSTOMER_BY_EMAIL)
+                .bind(EMAIL, email).map(userModelMapper(realm)).one());
     }
 
     @Override
@@ -191,11 +193,11 @@ public class CustomerStorageProvider implements UserStorageProvider, UserLookupP
      */
     @Override
     public UserModel addUser(RealmModel realm, @NonNull String username) {
-        String id = UUID.randomUUID().toString();
+        String customerId = UUID.randomUUID().toString();
         jdbi.withHandle(h -> h.execute(INSERT_CUSTOMER,
-                id, username, false, true));
+                customerId, username, false, true));
         return new CustomerModel.Builder(session, realm, storageProviderModel)
-                .id(id)
+                .customerId(customerId)
                 .email(username)
                 .enabled(true)
                 .build();
@@ -208,6 +210,8 @@ public class CustomerStorageProvider implements UserStorageProvider, UserLookupP
      */
     @Override
     public boolean removeUser(RealmModel realm, UserModel user) {
-        return false;
+        try (Handle handle = jdbi.open()) {
+            return handle.execute(DELETE_CUSTOMER, user.getId()) == 1;
+        }
     }
 }

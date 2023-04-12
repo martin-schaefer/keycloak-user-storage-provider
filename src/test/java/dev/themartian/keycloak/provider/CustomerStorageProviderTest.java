@@ -56,10 +56,10 @@ public class CustomerStorageProviderTest {
         RealmModel realmModel = Mockito.mock(RealmModel.class);
 
         // when
-        UserModel userModel = customerStorageProvider.getUserById(realmModel, "03");
+        UserModel userModel = customerStorageProvider.getUserById(realmModel, "f:332a234e31234:sabrina-km@mail.org");
 
         // then
-        assertThat(userModel.getId()).isEqualTo("03");
+        assertThat(userModel.getFirstAttribute(CUSTOMER_ID)).isEqualTo("03");
         assertThat(userModel.getEmail()).isEqualTo("sabrina-km@mail.org");
         assertThat(userModel.isEmailVerified()).isTrue();
         assertThat(userModel.getFirstName()).isEqualTo("Sabrina");
@@ -85,7 +85,7 @@ public class CustomerStorageProviderTest {
         // then
         List<UserModel> userModels = userModelStream.toList();
         assertThat(userModels).hasSize(expectedIds.length);
-        assertThat(userModels.stream().map(UserModel::getId)).containsExactly(expectedIds);
+        assertThat(userModels.stream().map(u -> u.getFirstAttribute(CUSTOMER_ID))).containsExactly(expectedIds);
     }
 
     static Stream<Arguments> searchValues() {
@@ -116,7 +116,7 @@ public class CustomerStorageProviderTest {
         // then
         List<UserModel> userModels = userModelStream.toList();
         assertThat(userModels).hasSize(expectedIds.length);
-        assertThat(userModels.stream().map(UserModel::getId)).containsExactly(expectedIds);
+        assertThat(userModels.stream().map(u -> u.getFirstAttribute(CUSTOMER_ID))).containsExactly(expectedIds);
     }
 
     public static Stream<Arguments> searchParams() {

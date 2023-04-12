@@ -2,21 +2,22 @@ package dev.themartian.keycloak.provider;
 
 import lombok.Getter;
 import lombok.NonNull;
+import org.keycloak.common.util.MultivaluedHashMap;
 import org.keycloak.component.ComponentModel;
 import org.keycloak.models.KeycloakSession;
 import org.keycloak.models.RealmModel;
 import org.keycloak.models.SubjectCredentialManager;
 import org.keycloak.models.UserModel;
 import org.keycloak.storage.adapter.AbstractUserAdapter;
-import org.keycloak.common.util.MultivaluedHashMap;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Getter
 public class CustomerModel extends AbstractUserAdapter {
 
-    public static final String ID = "id";
+    public static final String CUSTOMER_ID = "customerId";
     public static final String USERNAME = UserModel.USERNAME;
     public static final String EMAIL = UserModel.EMAIL;
     public static final String FIRST_NAME = UserModel.FIRST_NAME;
@@ -24,29 +25,47 @@ public class CustomerModel extends AbstractUserAdapter {
     public static final String ENABLED = "enabled";
     public static final String EMAIL_VERIFIED = "emailVerified";
 
-    private final String id;
     private final String email;
     private final boolean emailVerified;
     private final String firstName;
     private final String lastName;
     private final boolean enabled;
+    private final Map<String,String> attributes = new HashMap<>();
 
     private CustomerModel(@NonNull KeycloakSession session,
                           @NonNull RealmModel realm,
                           @NonNull ComponentModel storageProviderModel,
-                          @NonNull String id,
+                          @NonNull String customerId,
                           @NonNull String email,
                           boolean emailVerified,
                           String firstName,
                           String lastName,
                           boolean enabled) {
         super(session, realm, storageProviderModel);
-        this.id = id;
+        setCustomerId(customerId);
         this.email = email;
         this.emailVerified = emailVerified;
         this.firstName = firstName;
         this.lastName = lastName;
         this.enabled = enabled;
+    }
+
+    public void setCustomerId(String customerId) {
+        setSingleAttribute(CUSTOMER_ID, customerId);
+    }
+
+    public String getCustomerId() {
+        return  getFirstAttribute(CUSTOMER_ID);
+    }
+
+    @Override
+    public void setSingleAttribute(String name, String value) {
+        attributes.put(name, value);
+    }
+
+    @Override
+    public String getFirstAttribute(String name) {
+        return attributes.get(name);
     }
 
     @Override
@@ -76,7 +95,7 @@ public class CustomerModel extends AbstractUserAdapter {
         private final KeycloakSession session;
         private final RealmModel realm;
         private final ComponentModel storageProviderModel;
-        private String id;
+        private String customerId;
         private String email;
         private boolean emailVerified;
         private String firstName;
@@ -89,8 +108,8 @@ public class CustomerModel extends AbstractUserAdapter {
             this.storageProviderModel = storageProviderModel;
         }
 
-        CustomerModel.Builder id(@NonNull String id) {
-            this.id = id;
+        CustomerModel.Builder customerId(@NonNull String customerId) {
+            this.customerId = customerId;
             return this;
         }
 
@@ -124,7 +143,7 @@ public class CustomerModel extends AbstractUserAdapter {
                     session,
                     realm,
                     storageProviderModel,
-                    id,
+                    customerId,
                     email,
                     emailVerified,
                     firstName,
