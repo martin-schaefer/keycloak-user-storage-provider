@@ -1,4 +1,4 @@
-package dev.themartian.keycloak.provider;
+package dev.themartian.keycloak.storage;
 
 import org.jdbi.v3.core.statement.UnableToExecuteStatementException;
 import org.junit.jupiter.api.*;
@@ -18,11 +18,10 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import static dev.themartian.keycloak.provider.CustomerModel.*;
+import static dev.themartian.keycloak.storage.CustomerModel.*;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrowsExactly;
 

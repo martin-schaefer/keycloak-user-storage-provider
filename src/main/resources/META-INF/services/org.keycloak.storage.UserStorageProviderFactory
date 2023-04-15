@@ -1,1 +1,1 @@
-dev.themartian.keycloak.provider.CustomerStorageProviderFactory
+dev.themartian.keycloak.storage.CustomerStorageProviderFactory

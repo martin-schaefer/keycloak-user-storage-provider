@@ -1,4 +1,4 @@
-package dev.themartian.keycloak.provider;
+package dev.themartian.keycloak.storage;
 
 import lombok.Getter;
 import lombok.NonNull;

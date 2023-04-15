@@ -1,4 +1,4 @@
-package dev.themartian.keycloak.provider;
+package dev.themartian.keycloak.storage;
 
 import lombok.NonNull;
 import lombok.SneakyThrows;
@@ -22,7 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 
-import static dev.themartian.keycloak.provider.CustomerModel.*;
+import static dev.themartian.keycloak.storage.CustomerModel.*;
 import static org.keycloak.utils.StringUtil.isNotBlank;
 
 public class CustomerStorageProvider implements UserStorageProvider, UserLookupProvider, UserQueryProvider, UserRegistrationProvider {
