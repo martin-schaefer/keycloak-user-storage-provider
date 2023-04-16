@@ -1,6 +1,6 @@
-package dev.themartian.keycloak.action;
+package dev.themartian.keycloak.activation;
 
-import dev.themartian.keycloak.action.ActivationCodeGenerator;
+import dev.themartian.keycloak.activation.ActivationCodeGenerator;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashSet;

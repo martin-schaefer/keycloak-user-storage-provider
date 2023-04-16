@@ -1,4 +1,4 @@
-package dev.themartian.keycloak.action;/*
+package dev.themartian.keycloak.activation;/*
 My File Header
 */
 
