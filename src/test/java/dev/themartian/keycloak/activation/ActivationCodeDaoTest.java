@@ -19,6 +19,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 import javax.sql.DataSource;
 
 import com.zaxxer.hikari.HikariConfig;
@@ -67,7 +68,7 @@ class ActivationCodeDaoTest {
         for (int i = 0; i < size; i++) {
             activationCodes.add(
                     builder()
-                            .codeGroup("ABC-2023").code(activationCodeGenerator.generate()).grantedRole("SOME_ROLE:ID1234567:2023-12-31")
+                            .codeGroup("ABC-2023").recipient("Q700" + (i % 10)).code(activationCodeGenerator.generate()).grantedRole("SOME_ROLE:ID1234567:2023-12-31")
                             .created(now).validUntil(LocalDate.of(2023, 02, 28)).build());
         }
 
@@ -77,4 +78,18 @@ class ActivationCodeDaoTest {
         // then
         assertThat(count).isEqualTo(size);
     }
+
+    @Test
+    @Order(1)
+    void findRecipients() {
+        // given
+        String codeGroup = "ABC-2023";
+
+        // when
+        List<String> recipients = activationCodeDao.findRecipients(codeGroup);
+
+        // then
+        assertThat(recipients).hasSize(10);
+    }
+
 }

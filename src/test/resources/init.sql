@@ -3,6 +3,7 @@ create table activation_code
 (
     code         varchar(12)   not null primary key,
     codeGroup    varchar(100)  not null,
+    recipient    varchar(100)  not null,
     grantedRole  varchar(1000) not null,
     created      timestamp     not null,
     validUntil   date          not null,
